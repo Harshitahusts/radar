@@ -15,20 +15,19 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import torch
-from diffusers import (
-    AutoPipelineForInpainting,
-    ControlNetModel,
-    StableDiffusionXLControlNetPipeline,
-)
 from PIL import Image
 
 from stylesync.rag.schema import StyleGuideline
 
 logger = logging.getLogger(__name__)
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
+
+def _get_device_and_dtype():
+    import torch
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.float16 if device == "cuda" else torch.float32
+    return device, dtype
 
 
 class TryOnPipeline:
@@ -50,17 +49,22 @@ class TryOnPipeline:
         if self._pipe is not None:
             return self._pipe
 
+        import torch
+        from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline
+
+        device, dtype = _get_device_and_dtype()
+
         logger.info("Loading ControlNet model: %s", self._cn_id)
         controlnet = ControlNetModel.from_pretrained(
-            self._cn_id, torch_dtype=DTYPE
+            self._cn_id, torch_dtype=dtype
         )
 
         logger.info("Loading SDXL pipeline: %s", self._sdxl_id)
         self._pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
             self._sdxl_id,
             controlnet=controlnet,
-            torch_dtype=DTYPE,
-        ).to(DEVICE)
+            torch_dtype=dtype,
+        ).to(device)
 
         self._pipe.enable_model_cpu_offload()
         return self._pipe
@@ -69,11 +73,15 @@ class TryOnPipeline:
         if self._inpaint_pipe is not None:
             return self._inpaint_pipe
 
+        from diffusers import AutoPipelineForInpainting
+
+        device, dtype = _get_device_and_dtype()
+
         logger.info("Loading inpainting pipeline for logo protection")
         self._inpaint_pipe = AutoPipelineForInpainting.from_pretrained(
             "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
-            torch_dtype=DTYPE,
-        ).to(DEVICE)
+            torch_dtype=dtype,
+        ).to(device)
 
         self._inpaint_pipe.enable_model_cpu_offload()
         return self._inpaint_pipe
@@ -157,8 +165,11 @@ class TryOnPipeline:
         Returns:
             List of generated PIL Images.
         """
+        import torch
+
+        device, _ = _get_device_and_dtype()
         positive_prompt, negative_prompt = self.build_prompt(guideline)
-        generator = torch.Generator(device=DEVICE)
+        generator = torch.Generator(device=device)
         if seed is not None:
             generator.manual_seed(seed)
 
