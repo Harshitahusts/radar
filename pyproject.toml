@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "stylesync-ai"
+version = "0.1.0"
+description = "AI Agent for eCommerce virtual try-on with RAG-driven style guidelines"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "langgraph>=0.2.0",
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "pinecone-client>=3.0.0",
+    "diffusers>=0.30.0",
+    "transformers>=4.40.0",
+    "accelerate>=0.30.0",
+    "controlnet-aux>=0.0.9",
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "Pillow>=10.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "python-multipart>=0.0.9",
+    "pydantic>=2.0.0",
+    "opencv-python>=4.9.0",
+    "numpy>=1.26.0",
+    "rembg>=2.0.0",
+    "sentence-transformers>=3.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5.0", "mypy>=1.10"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]

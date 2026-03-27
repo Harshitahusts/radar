@@ -1,0 +1,239 @@
+{
+  "_meta": {
+    "title": "StyleSync AI — Virtual Try-On Workflow",
+    "description": "ComfyUI workflow for garment-to-model generation with logo preservation",
+    "version": "1.0.0"
+  },
+  "nodes": {
+    "1_load_garment": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "garment_input.png"
+      },
+      "comment": "Load the flat-lay garment image (background already removed)"
+    },
+    "2_load_pose": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "pose_reference.png"
+      },
+      "comment": "Load OpenPose skeleton or reference model photo"
+    },
+    "3_load_logo_mask": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "logo_mask.png"
+      },
+      "comment": "Binary mask: black=logo region (preserve), white=regenerate"
+    },
+    "4_openpose_preprocessor": {
+      "class_type": "OpenposePreprocessor",
+      "inputs": {
+        "image": ["2_load_pose", 0],
+        "detect_hand": true,
+        "detect_body": true,
+        "detect_face": true,
+        "resolution": 1024
+      },
+      "comment": "Extract OpenPose skeleton from reference model image"
+    },
+    "5_canny_preprocessor": {
+      "class_type": "CannyEdgePreprocessor",
+      "inputs": {
+        "image": ["1_load_garment", 0],
+        "low_threshold": 100,
+        "high_threshold": 200,
+        "resolution": 1024
+      },
+      "comment": "Extract garment edges — helps preserve texture boundaries and logo outlines"
+    },
+    "6_controlnet_openpose": {
+      "class_type": "ControlNetLoader",
+      "inputs": {
+        "control_net_name": "control_v11p_sd15_openpose.pth"
+      }
+    },
+    "7_controlnet_canny": {
+      "class_type": "ControlNetLoader",
+      "inputs": {
+        "control_net_name": "control_v11p_sd15_canny.pth"
+      }
+    },
+    "8_sdxl_checkpoint": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd_xl_base_1.0.safetensors"
+      }
+    },
+    "9_clip_text_positive": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": ["8_sdxl_checkpoint", 1],
+        "text": "professional ecommerce product photo, fashion model wearing the exact garment, facing the camera directly, clean white studio background, soft diffused studio lighting, high resolution, 8k, sharp details, accurate fabric texture and color reproduction, garment logo perfectly preserved"
+      },
+      "comment": "Positive prompt — dynamically populated by the agent based on RAG style guidelines"
+    },
+    "10_clip_text_negative": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": ["8_sdxl_checkpoint", 1],
+        "text": "blurry, low quality, deformed, distorted, extra limbs, bad anatomy, watermark, text overlay, garment color changed, wrong fabric texture, logo distorted, logo removed, logo color changed"
+      },
+      "comment": "Negative prompt — includes logo protection hints from RAG"
+    },
+    "11_apply_controlnet_pose": {
+      "class_type": "ControlNetApplyAdvanced",
+      "inputs": {
+        "positive": ["9_clip_text_positive", 0],
+        "negative": ["10_clip_text_negative", 0],
+        "control_net": ["6_controlnet_openpose", 0],
+        "image": ["4_openpose_preprocessor", 0],
+        "strength": 0.85,
+        "start_percent": 0.0,
+        "end_percent": 0.8
+      },
+      "comment": "Apply pose ControlNet — high strength for accurate body positioning"
+    },
+    "12_apply_controlnet_canny": {
+      "class_type": "ControlNetApplyAdvanced",
+      "inputs": {
+        "positive": ["11_apply_controlnet_pose", 0],
+        "negative": ["11_apply_controlnet_pose", 1],
+        "control_net": ["7_controlnet_canny", 0],
+        "image": ["5_canny_preprocessor", 0],
+        "strength": 0.5,
+        "start_percent": 0.0,
+        "end_percent": 0.6
+      },
+      "comment": "Apply canny ControlNet — moderate strength to preserve garment edges and logo boundaries"
+    },
+    "13_ip_adapter_loader": {
+      "class_type": "IPAdapterModelLoader",
+      "inputs": {
+        "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors"
+      },
+      "comment": "IP-Adapter for garment texture/color transfer from the input image"
+    },
+    "14_ip_adapter_apply": {
+      "class_type": "IPAdapterApply",
+      "inputs": {
+        "ipadapter": ["13_ip_adapter_loader", 0],
+        "model": ["8_sdxl_checkpoint", 0],
+        "image": ["1_load_garment", 0],
+        "weight": 0.7,
+        "noise": 0.1,
+        "start_at": 0.0,
+        "end_at": 0.9
+      },
+      "comment": "Transfer garment appearance — weight 0.7 balances fidelity vs. flexibility"
+    },
+    "15_ksampler_base": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": ["14_ip_adapter_apply", 0],
+        "positive": ["12_apply_controlnet_canny", 0],
+        "negative": ["12_apply_controlnet_canny", 1],
+        "latent_image": {
+          "class_type": "EmptyLatentImage",
+          "inputs": { "width": 768, "height": 1024, "batch_size": 1 }
+        },
+        "seed": 42,
+        "steps": 30,
+        "cfg": 7.5,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "denoise": 1.0
+      },
+      "comment": "Base generation — 30 steps with DPM++ 2M Karras scheduler"
+    },
+    "16_vae_decode_base": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": ["15_ksampler_base", 0],
+        "vae": ["8_sdxl_checkpoint", 2]
+      }
+    },
+    "17_logo_composite": {
+      "class_type": "ImageCompositeMasked",
+      "inputs": {
+        "destination": ["16_vae_decode_base", 0],
+        "source": ["1_load_garment", 0],
+        "mask": ["3_load_logo_mask", 0],
+        "x": 0,
+        "y": 0,
+        "resize_source": true
+      },
+      "comment": "KEY STEP: Composite the original logo region back onto the generated image using the mask. This ensures pixel-perfect logo preservation regardless of generation quality."
+    },
+    "18_inpaint_refine": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": ["14_ip_adapter_apply", 0],
+        "positive": ["12_apply_controlnet_canny", 0],
+        "negative": ["12_apply_controlnet_canny", 1],
+        "latent_image": {
+          "class_type": "VAEEncode",
+          "inputs": {
+            "pixels": ["17_logo_composite", 0],
+            "vae": ["8_sdxl_checkpoint", 2]
+          }
+        },
+        "seed": 42,
+        "steps": 15,
+        "cfg": 7.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "denoise": 0.3
+      },
+      "comment": "Light refinement pass — low denoise (0.3) to blend the composited logo seamlessly without altering it"
+    },
+    "19_vae_decode_final": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": ["18_inpaint_refine", 0],
+        "vae": ["8_sdxl_checkpoint", 2]
+      }
+    },
+    "20_upscale": {
+      "class_type": "ImageUpscaleWithModel",
+      "inputs": {
+        "upscale_model": {
+          "class_type": "UpscaleModelLoader",
+          "inputs": { "model_name": "RealESRGAN_x2plus.pth" }
+        },
+        "image": ["19_vae_decode_final", 0]
+      },
+      "comment": "2x upscale for HD output (768x1024 → 1536x2048)"
+    },
+    "21_save_output": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": ["20_upscale", 0],
+        "filename_prefix": "stylesync_output"
+      }
+    }
+  },
+  "workflow_notes": {
+    "logo_preservation_strategy": [
+      "1. Canny ControlNet extracts garment edges including logo boundaries",
+      "2. IP-Adapter transfers garment texture/color from input flat-lay",
+      "3. After base generation, the original logo region is composited back using a binary mask",
+      "4. A light refinement pass (denoise=0.3) blends the seams without altering the logo",
+      "5. The logo mask should have ~10px feathered edges for seamless blending"
+    ],
+    "texture_consistency_tips": [
+      "IP-Adapter weight 0.7 is optimal — lower loses texture, higher causes artifacts",
+      "Canny ControlNet at 0.5 strength preserves fabric patterns without over-constraining",
+      "Use the same seed across variants for consistent model appearance",
+      "For striped/patterned garments, increase Canny strength to 0.65"
+    ],
+    "recommended_models": {
+      "base": "sd_xl_base_1.0.safetensors or juggernautXL_v9.safetensors",
+      "controlnet_pose": "control_v11p_sd15_openpose.pth",
+      "controlnet_canny": "control_v11p_sd15_canny.pth",
+      "ip_adapter": "ip-adapter-plus_sdxl_vit-h.safetensors",
+      "upscaler": "RealESRGAN_x2plus.pth",
+      "alternative_tryon": "IDM-VTON (yisol/IDM-VTON) for dedicated virtual try-on"
+    }
+  }
+}
