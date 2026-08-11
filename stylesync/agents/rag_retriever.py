@@ -1,8 +1,4 @@
-"""Agent 2: RAG Retriever — fetches brand-specific style guidelines from Pinecone.
-
-Takes the garment analysis output and queries the vector store to retrieve
-matching style guidelines (pose, background, lighting, logo handling rules).
-"""
+"""Agent 2: RAG Retriever — fetches brand-specific style guidelines from Pinecone."""
 
 from __future__ import annotations
 
@@ -13,7 +9,6 @@ from stylesync.rag.vector_store import ProductVectorStore
 
 logger = logging.getLogger(__name__)
 
-# Module-level singleton (lazy)
 _store: ProductVectorStore | None = None
 
 
@@ -41,13 +36,10 @@ def rag_retrieval_node(state: AgentState) -> AgentState:
         category=category,
     )
 
-    # Enrich guideline with detected attributes if RAG returned defaults
     if state.get("has_logo") and not guideline.has_logo:
         guideline.has_logo = True
         guideline.logo_position = state.get("detected_logo_position")
-        guideline.negative_prompt_hints.append(
-            "do not alter, distort, or remove the logo/graphic"
-        )
+        guideline.negative_prompt_hints.append("do not alter, distort, or remove the logo/graphic")
 
     guideline.pattern = state.get("detected_pattern", guideline.pattern)
 
@@ -62,8 +54,4 @@ def rag_retrieval_node(state: AgentState) -> AgentState:
     )
     logger.info("RAG context:\n%s", context_str)
 
-    return {
-        **state,
-        "style_guideline": guideline,
-        "rag_context": context_str,
-    }
+    return {**state, "style_guideline": guideline, "rag_context": context_str}

@@ -1,8 +1,4 @@
-"""Shared state definition for the LangGraph multi-agent workflow.
-
-The AgentState TypedDict flows through the graph — each agent node reads
-from and writes to specific fields, enabling clean data handoff.
-"""
+"""Shared state definition for the LangGraph multi-agent workflow."""
 
 from __future__ import annotations
 
@@ -16,39 +12,30 @@ from stylesync.rag.schema import StyleGuideline
 
 
 class AgentState(TypedDict, total=False):
-    """State shared across all agents in the LangGraph workflow.
+    """State shared across all agents in the LangGraph workflow."""
 
-    Flow: input → garment_analysis → rag_lookup → image_generation → output
-    """
+    garment_image_path: str
+    brand_hint: Optional[str]
+    category_hint: Optional[str]
+    reference_model_path: Optional[str]
+    num_images: int
 
-    # ── Input ────────────────────────────────────────────────────────────
-    garment_image_path: str                    # Path to uploaded flat-lay image
-    brand_hint: Optional[str]                  # Optional brand name from user
-    category_hint: Optional[str]               # Optional category hint
-    reference_model_path: Optional[str]        # Optional reference model photo
-    num_images: int                            # How many variants to generate
-
-    # ── Garment Analysis Agent output ────────────────────────────────────
-    garment_description: str                   # LLM-generated description of garment
-    detected_brand: Optional[str]              # Brand detected from image
-    detected_category: str                     # e.g. "t-shirt"
-    detected_pattern: str                      # e.g. "logo", "solid"
-    detected_logo_position: Optional[str]      # e.g. "center-chest"
+    garment_description: str
+    detected_brand: Optional[str]
+    detected_category: str
+    detected_pattern: str
+    detected_logo_position: Optional[str]
     has_logo: bool
 
-    # ── RAG Agent output ─────────────────────────────────────────────────
-    style_guideline: StyleGuideline            # Retrieved style rules
-    rag_context: str                           # Raw context string for prompt
+    style_guideline: StyleGuideline
+    rag_context: str
 
-    # ── Preprocessing output ─────────────────────────────────────────────
-    garment_clean: Any                         # PIL Image (bg removed)
-    garment_normalized: Any                    # PIL Image (resized)
-    pose_image: Any                            # PIL Image (OpenPose skeleton)
-    inpaint_mask: Any                          # PIL Image (logo protection mask)
+    garment_clean: Any
+    garment_normalized: Any
+    pose_image: Any
+    inpaint_mask: Any
 
-    # ── Generation Agent output ──────────────────────────────────────────
-    generated_images: list[Any]                # List of PIL Images
-    output_paths: list[str]                    # Saved file paths
+    generated_images: list[Any]
+    output_paths: list[str]
 
-    # ── Error handling ───────────────────────────────────────────────────
     error: Optional[str]

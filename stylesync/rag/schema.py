@@ -9,26 +9,26 @@ returns contextually relevant style guidelines.
 
 Pinecone Index Layout
 ─────────────────────
-  Namespace : "products"
+  Namespace : \"products\"
   Dimension : 384  (all-MiniLM-L6-v2)
   Metric    : cosine
 
   Metadata fields (filterable):
-    brand           : str       — e.g. "Nike", "Zara"
-    category        : str       — e.g. "t-shirt", "hoodie", "jacket"
-    sub_category    : str       — e.g. "crew-neck", "v-neck", "polo"
+    brand           : str       — e.g. \"Nike\", \"Zara\"
+    category        : str       — e.g. \"t-shirt\", \"hoodie\", \"jacket\"
+    sub_category    : str       — e.g. \"crew-neck\", \"v-neck\", \"polo\"
     color_primary   : str       — dominant garment color
     color_secondary : str|None  — accent / secondary color
-    pattern         : str       — "solid", "striped", "graphic", "logo"
-    fabric          : str       — "cotton", "polyester", "blend"
-    fit             : str       — "slim", "regular", "oversized"
-    gender          : str       — "mens", "womens", "unisex"
+    pattern         : str       — \"solid\", \"striped\", \"graphic\", \"logo\"
+    fabric          : str       — \"cotton\", \"polyester\", \"blend\"
+    fit             : str       — \"slim\", \"regular\", \"oversized\"
+    gender          : str       — \"mens\", \"womens\", \"unisex\"
     has_logo        : bool      — whether garment has a visible logo/print
-    logo_position   : str|None  — "center-chest", "left-chest", "back", etc.
+    logo_position   : str|None  — \"center-chest\", \"left-chest\", \"back\", etc.
     style_notes     : str       — free-text brand style guidelines
-    model_pose      : str       — recommended pose: "front", "3/4", "side"
-    background      : str       — recommended bg: "white", "lifestyle", "gradient"
-    lighting        : str       — "studio-soft", "natural", "dramatic"
+    model_pose      : str       — recommended pose: \"front\", \"3/4\", \"side\"
+    background      : str       — recommended bg: \"white\", \"lifestyle\", \"gradient\"
+    lighting        : str       — \"studio-soft\", \"natural\", \"dramatic\"
     sku             : str       — product SKU for traceability
 """
 

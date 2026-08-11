@@ -7,23 +7,17 @@
   "nodes": {
     "1_load_garment": {
       "class_type": "LoadImage",
-      "inputs": {
-        "image": "garment_input.png"
-      },
+      "inputs": { "image": "garment_input.png" },
       "comment": "Load the flat-lay garment image (background already removed)"
     },
     "2_load_pose": {
       "class_type": "LoadImage",
-      "inputs": {
-        "image": "pose_reference.png"
-      },
+      "inputs": { "image": "pose_reference.png" },
       "comment": "Load OpenPose skeleton or reference model photo"
     },
     "3_load_logo_mask": {
       "class_type": "LoadImage",
-      "inputs": {
-        "image": "logo_mask.png"
-      },
+      "inputs": { "image": "logo_mask.png" },
       "comment": "Binary mask: black=logo region (preserve), white=regenerate"
     },
     "4_openpose_preprocessor": {
@@ -34,8 +28,7 @@
         "detect_body": true,
         "detect_face": true,
         "resolution": 1024
-      },
-      "comment": "Extract OpenPose skeleton from reference model image"
+      }
     },
     "5_canny_preprocessor": {
       "class_type": "CannyEdgePreprocessor",
@@ -45,25 +38,19 @@
         "high_threshold": 200,
         "resolution": 1024
       },
-      "comment": "Extract garment edges — helps preserve texture boundaries and logo outlines"
+      "comment": "Extract garment edges to preserve texture boundaries and logo outlines"
     },
     "6_controlnet_openpose": {
       "class_type": "ControlNetLoader",
-      "inputs": {
-        "control_net_name": "control_v11p_sd15_openpose.pth"
-      }
+      "inputs": { "control_net_name": "control_v11p_sd15_openpose.pth" }
     },
     "7_controlnet_canny": {
       "class_type": "ControlNetLoader",
-      "inputs": {
-        "control_net_name": "control_v11p_sd15_canny.pth"
-      }
+      "inputs": { "control_net_name": "control_v11p_sd15_canny.pth" }
     },
     "8_sdxl_checkpoint": {
       "class_type": "CheckpointLoaderSimple",
-      "inputs": {
-        "ckpt_name": "sd_xl_base_1.0.safetensors"
-      }
+      "inputs": { "ckpt_name": "sd_xl_base_1.0.safetensors" }
     },
     "9_clip_text_positive": {
       "class_type": "CLIPTextEncode",
@@ -78,8 +65,7 @@
       "inputs": {
         "clip": ["8_sdxl_checkpoint", 1],
         "text": "blurry, low quality, deformed, distorted, extra limbs, bad anatomy, watermark, text overlay, garment color changed, wrong fabric texture, logo distorted, logo removed, logo color changed"
-      },
-      "comment": "Negative prompt — includes logo protection hints from RAG"
+      }
     },
     "11_apply_controlnet_pose": {
       "class_type": "ControlNetApplyAdvanced",
@@ -109,9 +95,7 @@
     },
     "13_ip_adapter_loader": {
       "class_type": "IPAdapterModelLoader",
-      "inputs": {
-        "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors"
-      },
+      "inputs": { "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors" },
       "comment": "IP-Adapter for garment texture/color transfer from the input image"
     },
     "14_ip_adapter_apply": {
@@ -163,7 +147,7 @@
         "y": 0,
         "resize_source": true
       },
-      "comment": "KEY STEP: Composite the original logo region back onto the generated image using the mask. This ensures pixel-perfect logo preservation regardless of generation quality."
+      "comment": "KEY STEP: Composite original logo region back onto the generated image for pixel-perfect preservation"
     },
     "18_inpaint_refine": {
       "class_type": "KSampler",
@@ -185,7 +169,7 @@
         "scheduler": "karras",
         "denoise": 0.3
       },
-      "comment": "Light refinement pass — low denoise (0.3) to blend the composited logo seamlessly without altering it"
+      "comment": "Light refinement pass — low denoise (0.3) to blend composited logo seamlessly"
     },
     "19_vae_decode_final": {
       "class_type": "VAEDecode",
@@ -203,7 +187,7 @@
         },
         "image": ["19_vae_decode_final", 0]
       },
-      "comment": "2x upscale for HD output (768x1024 → 1536x2048)"
+      "comment": "2x upscale for HD output (768x1024 -> 1536x2048)"
     },
     "21_save_output": {
       "class_type": "SaveImage",
