@@ -9,6 +9,7 @@ def test_generate_default_pose_front():
     pose = generate_default_pose("front", size=(768, 1024))
     assert pose.size == (768, 1024)
     assert pose.mode == "RGB"
+    # Pose skeleton should have non-zero pixels (not fully black)
     pixels = list(pose.getdata())
     non_black = [p for p in pixels if p != (0, 0, 0)]
     assert len(non_black) > 0
