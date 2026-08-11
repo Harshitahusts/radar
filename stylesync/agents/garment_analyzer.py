@@ -47,41 +47,26 @@ def garment_analysis_node(state: AgentState) -> AgentState:
     image_path = state["garment_image_path"]
     logger.info("Analyzing garment image: %s", image_path)
 
-    # Encode image as base64 for the vision API
     image_bytes = Path(image_path).read_bytes()
     b64 = base64.b64encode(image_bytes).decode()
 
-    llm = ChatOpenAI(
-        model=settings.llm_model,
-        api_key=settings.openai_api_key,
-        temperature=0,
-    )
+    llm = ChatOpenAI(model=settings.llm_model, api_key=settings.openai_api_key, temperature=0)
 
-    message = HumanMessage(
-        content=[
-            {"type": "text", "text": ANALYSIS_PROMPT},
-            {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{b64}"},
-            },
-        ]
-    )
+    message = HumanMessage(content=[
+        {"type": "text", "text": ANALYSIS_PROMPT},
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
+    ])
 
     response = llm.invoke([message])
     raw = response.content
     logger.info("Garment analysis raw response: %s", raw[:300])
 
-    # Parse JSON from the response
     import json
-
-    # Handle markdown code blocks in response
     text = raw.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[1].rsplit("```", 1)[0]
-
     analysis = json.loads(text)
 
-    # Override with user hints if provided
     brand = state.get("brand_hint") or analysis.get("brand", "unknown")
     category = state.get("category_hint") or analysis.get("category", "t-shirt")
 

@@ -18,13 +18,8 @@ from stylesync.utils.config import settings
 logging.basicConfig(level=logging.INFO, format="%(name)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="StyleSync AI",
-    description="Upload a flat-lay garment image → get professional model-on product shots",
-    version="0.1.0",
-)
+app = FastAPI(title="StyleSync AI", description="Upload a flat-lay garment image → get professional model-on product shots", version="0.1.0")
 
-# Serve generated images as static files
 settings.ensure_dirs()
 app.mount("/outputs", StaticFiles(directory=str(settings.output_dir)), name="outputs")
 
@@ -43,30 +38,18 @@ async def generate_tryon(
     brand: str = Form(default=None, description="Brand name hint (optional)"),
     category: str = Form(default=None, description="Category hint: t-shirt, hoodie, etc."),
     num_images: int = Form(default=1, ge=1, le=4, description="Number of variants"),
-    reference_model: UploadFile | None = File(
-        default=None, description="Optional reference model photo for pose"
-    ),
+    reference_model: UploadFile | None = File(default=None, description="Optional reference model photo for pose"),
 ):
-    """Upload a garment flat-lay and generate model-on studio images.
-
-    The pipeline:
-      1. Analyzes the garment (GPT-4o vision)
-      2. Retrieves brand-specific style guidelines (Pinecone RAG)
-      3. Generates HD model-on images (SDXL + ControlNet)
-    """
+    """Upload a garment flat-lay and generate model-on studio images."""
     job_id = uuid.uuid4().hex[:12]
-
-    # Save uploaded garment image
     garment_path = settings.upload_dir / f"{job_id}_garment{Path(garment_image.filename).suffix}"
     garment_path.write_bytes(await garment_image.read())
 
-    # Save optional reference model image
     ref_model_path = None
     if reference_model:
         ref_model_path = settings.upload_dir / f"{job_id}_model{Path(reference_model.filename).suffix}"
         ref_model_path.write_bytes(await reference_model.read())
 
-    # Build initial state
     initial_state: AgentState = {
         "garment_image_path": str(garment_path),
         "brand_hint": brand,
@@ -75,37 +58,16 @@ async def generate_tryon(
         "num_images": num_images,
     }
 
-    # Run the LangGraph pipeline
     try:
         result = stylesync_graph.invoke(initial_state)
     except Exception as e:
         logger.exception("Pipeline failed for job %s", job_id)
-        return JSONResponse(
-            status_code=500,
-            content=GenerationResponse(
-                job_id=job_id,
-                status="error",
-                output_paths=[],
-                style_context="",
-                error=str(e),
-            ).model_dump(),
-        )
+        return JSONResponse(status_code=500, content=GenerationResponse(job_id=job_id, status="error", output_paths=[], style_context="", error=str(e)).model_dump())
 
     if result.get("error"):
-        return GenerationResponse(
-            job_id=job_id,
-            status="error",
-            output_paths=[],
-            style_context=result.get("rag_context", ""),
-            error=result["error"],
-        )
+        return GenerationResponse(job_id=job_id, status="error", output_paths=[], style_context=result.get("rag_context", ""), error=result["error"])
 
-    return GenerationResponse(
-        job_id=job_id,
-        status="completed",
-        output_paths=result.get("output_paths", []),
-        style_context=result.get("rag_context", ""),
-    )
+    return GenerationResponse(job_id=job_id, status="completed", output_paths=result.get("output_paths", []), style_context=result.get("rag_context", ""))
 
 
 @app.get("/health")
