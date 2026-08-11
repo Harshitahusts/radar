@@ -37,7 +37,7 @@ class ProductVectorStore:
             )
         return self._pc.Index(index_name)
 
-    # ── Write ────────────────────────────────────────────────────────────
+    # ── Write ──────────────────────────────────────────────────────────────────
 
     def upsert_product(self, product_id: str, metadata: GarmentMetadata) -> None:
         """Embed and upsert a single product into Pinecone."""
@@ -68,7 +68,7 @@ class ProductVectorStore:
             self._index.upsert(vectors=vectors, namespace=NAMESPACE)
             logger.info("Upserted batch %d–%d", i, i + len(batch))
 
-    # ── Read / Search ────────────────────────────────────────────────────
+    # ── Read / Search ────────────────────────────────────────────────────────────
 
     def search(
         self,
@@ -138,7 +138,7 @@ class ProductVectorStore:
             negative_prompt_hints=negative_hints,
         )
 
-    # ── Seed data helper ─────────────────────────────────────────────────
+    # ── Seed data helper ───────────────────────────────────────────────────────
 
     def seed_demo_data(self) -> None:
         """Populate the index with sample products for testing."""

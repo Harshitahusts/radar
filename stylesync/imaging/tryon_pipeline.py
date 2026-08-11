@@ -43,7 +43,7 @@ class TryOnPipeline:
         self._pipe = None
         self._inpaint_pipe = None
 
-    # ── Lazy Loading ─────────────────────────────────────────────────────
+    # ── Lazy Loading ───────────────────────────────────────────────────────────
 
     def _load_controlnet_pipeline(self):
         if self._pipe is not None:
@@ -86,7 +86,7 @@ class TryOnPipeline:
         self._inpaint_pipe.enable_model_cpu_offload()
         return self._inpaint_pipe
 
-    # ── Prompt Construction ──────────────────────────────────────────────
+    # ── Prompt Construction ────────────────────────────────────────────────────
 
     @staticmethod
     def build_prompt(guideline: StyleGuideline) -> tuple[str, str]:
@@ -135,7 +135,7 @@ class TryOnPipeline:
 
         return ", ".join(positive_parts), ", ".join(negative_parts)
 
-    # ── Generation ───────────────────────────────────────────────────────
+    # ── Generation ─────────────────────────────────────────────────────────────
 
     def generate(
         self,
