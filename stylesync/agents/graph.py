@@ -55,13 +55,13 @@ def build_stylesync_graph() -> StateGraph:
     """
     workflow = StateGraph(AgentState)
 
-    # ── Add nodes ────────────────────────────────────────────────────────
+    # ── Add nodes ─────────────────────────────────────────────────────────────
     workflow.add_node("analyze_garment", garment_analysis_node)
     workflow.add_node("retrieve_style", rag_retrieval_node)
     workflow.add_node("generate_images", image_generation_node)
     workflow.add_node("handle_error", error_handler_node)
 
-    # ── Define edges ─────────────────────────────────────────────────────
+    # ── Define edges ─────────────────────────────────────────────────────────
     workflow.set_entry_point("analyze_garment")
 
     workflow.add_conditional_edges(

@@ -52,7 +52,7 @@ def image_generation_node(state: AgentState) -> AgentState:
 
     logger.info("Starting image generation pipeline")
 
-    # ── Step 1: Garment preprocessing ────────────────────────────────────
+    # ── Step 1: Garment preprocessing ────────────────────────────────────────
     processor = _get_processor()
     logo_position = state.get("detected_logo_position") if state.get("has_logo") else None
     preprocess_result = processor.preprocess(image_path, logo_position=logo_position)
@@ -61,7 +61,7 @@ def image_generation_node(state: AgentState) -> AgentState:
     garment_normalized = preprocess_result["garment_normalized"]
     inpaint_mask = preprocess_result["inpaint_mask"]
 
-    # ── Step 2: Pose estimation ──────────────────────────────────────────
+    # ── Step 2: Pose estimation ──────────────────────────────────────────────
     ref_model_path = state.get("reference_model_path")
     if ref_model_path and Path(ref_model_path).exists():
         logger.info("Extracting pose from reference model: %s", ref_model_path)
@@ -71,7 +71,7 @@ def image_generation_node(state: AgentState) -> AgentState:
         logger.info("Using default pose: %s", guideline.pose)
         pose_image = generate_default_pose(pose_type=guideline.pose)
 
-    # ── Step 3: Generate images ──────────────────────────────────────────
+    # ── Step 3: Generate images ──────────────────────────────────────────────
     pipeline = _get_pipeline()
     generated = pipeline.generate(
         garment_image=garment_normalized,
@@ -84,7 +84,7 @@ def image_generation_node(state: AgentState) -> AgentState:
         controlnet_conditioning_scale=0.8,
     )
 
-    # ── Step 4: Save outputs ─────────────────────────────────────────────
+    # ── Step 4: Save outputs ─────────────────────────────────────────────────
     settings.ensure_dirs()
     sku = guideline.brand.lower().replace(" ", "-")
     output_paths = pipeline.save_results(
